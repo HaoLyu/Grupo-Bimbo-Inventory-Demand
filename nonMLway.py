@@ -27,40 +27,50 @@ f.readline()
 
 latest_demand_clpro = dict()
 global_median = list()
-
+agencia_product = {}
 total = 0
 
 while 1:
 
-    line = f.readline().strip()
-    total += 1
+	line = f.readline().strip()
+	total += 1
 
-    if total % 5000000 == 0:
-        print('Read {} lines...'.format(total))
+	if total % 5000000 == 0:
+		print('Read {} lines...'.format(total))
 
-    if line == '':
-        break
+	if line == '':
+		break
 
-    arr = line.split(",")
+	arr = line.split(",")
 
-    semana = int(arr[0])
-    agencia = int(arr[1])
-    canal = int(arr[2])
-    ruta = int(arr[3])
-    cliente = int(arr[4])
-    producto = int(arr[5])
-    demanda = int(arr[10])
+	semana = int(arr[0])
+	agencia = int(arr[1])
+	canal = int(arr[2])
+	ruta = int(arr[3])
+	cliente = int(arr[4])
+	producto = int(arr[5])
+	demanda = int(arr[10])
 
-    if cliente != '' and producto != '':
-        hsh = (agencia, cliente, producto)
-        if hsh in latest_demand_clpro:
-            latest_demand_clpro[hsh] = ((.5 * latest_demand_clpro[hsh]) + (.5 * demanda))
-        else:
-            latest_demand_clpro[hsh] = demanda
+	if agencia != '' and producto != '':
+		ap = (agencia, producto)
+		if ap not in agencia_product:
+			agencia_product[ap] = [demanda]
+		else:
+			agencia_product[ap].append(demanda)
 
-    list.append(global_median, demanda)
+	if cliente != '' and producto != '':
+		hsh = (agencia, cliente, producto)
+		if hsh in latest_demand_clpro:
+			latest_demand_clpro[hsh] = ((.5 * latest_demand_clpro[hsh]) + (.5 * demanda))
+		else:
+			latest_demand_clpro[hsh] = demanda
+
+	list.append(global_median, demanda)
 
 f.close()
+
+for key in agencia_product:
+	agencia_product[key] = np.mean(agencia_product[key])
 
 print ('')
 path = ('submission.csv')
@@ -74,44 +84,49 @@ median_demanda = np.median(global_median)
 total = 0
 total1 = 0
 total2 = 0
-
+total3 = 0
 while 1:
 
-    line = f.readline().strip()
-    total += 1
+	line = f.readline().strip()
+	total += 1
 
-    if total % 1000000 == 0:
-        print('Write {} lines...'.format(total))
+	if total % 1000000 == 0:
+		print('Write {} lines...'.format(total))
 
-    if line == '':
-        break
+	if line == '':
+		break
 
-    arr = line.split(",")
+	arr = line.split(",")
 
-    id = int(arr[0])
-    semana = int(arr[1])
-    agencia = int(arr[2])
-    cliente = int(arr[5])
-    producto = int(arr[6])
+	id = int(arr[0])
+	semana = int(arr[1])
+	agencia = int(arr[2])
+	cliente = int(arr[5])
+	producto = int(arr[6])
 
-    out.write(str(id) + ',')
+	out.write(str(id) + ',')
 
-    hsh = (agencia, cliente, producto)
-    if hsh in latest_demand_clpro:
-        d = latest_demand_clpro[hsh]
-        out.write(str(d))
-        total1 += 1
-    else:
-        out.write(str(round(median_demanda)))
-        total2 += 1
+	hsh = (agencia, cliente, producto)
+	ap = (agencia, producto)
+	if hsh in latest_demand_clpro:
+		d = latest_demand_clpro[hsh]
+		out.write(str(d))
+		total1 += 1
+	elif ap in agencia_product:
+		d = agencia_product[ap]
+		out.write(str(d))
+		total3 += 1
+	else:
+		out.write(str(round(median_demanda)))
+		total2 += 1
 
-    out.write("\n")
+	out.write("\n")
 out.close()
 
 print ('')
 
 print ('Total 1: {} ...'.format(total1))
 print ('Total 2: {} ...'.format(total2))
-
+print ('Total 2: {} ...'.format(total3))
 print ('')
 print ('Completed!')
